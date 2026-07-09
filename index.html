@@ -128,11 +128,13 @@
         soundSlider.style.background = "#333";
 
         soundSlider.addEventListener("touchstart", (e) => {
+          if (this.context.state === "suspended") {
+            this.context.resume();
+          }
           const y = e.touches[0].pageY;
           this.playSin(this.baseFrequency + y);
           this.updateFrequencyDisplay(e.touches[0].pageX, e.touches[0].pageY, this.baseFrequency + y);
         });
-
         soundSlider.addEventListener("touchmove", (e) => {
           const y = e.touches[0].pageY;
           if (this.snd) {
