@@ -1,297 +1,884 @@
+<!DOCTYPE html>
 <html>
 
-<head>
-  <title>Sound Slider</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-</head>
-
-<body>
-  <script>
-    class SoundController {
-      constructor() {
-        this.context = new AudioContext();
-        this.snds = [];
-        this.gainNode = null;
-        this.selectableWaveformTypes = ["sine", "square", "sawtooth", "triangle"];
-        this.waveformType = "sine"; // 初期値はサイン波
-        this.baseFrequency = 100; // 最低周波数の初期値
-        this.frequencyStep = Math.max(Math.floor(document.body.clientHeight / 200) * 100, 100); // ボタン押下時に周波数を動かす幅
-        this.createUI();
-        this.createFrequencyDisplay();
+  <head>
+    <title>Sound Slider</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+      html, body {
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          height: 100%;
+          width: 100%;
+          position: fixed;
+          background-color: #CCC;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          --body-color: #000000;
+          --detail-color: #FFFFFF;
       }
 
-      getNoteAndDremi(frequency) {
-        // 音階と対応する周波数、ドレミの配列
-        const notes = [{ frequency: 90, note: "-", doremi: "-" }, { frequency: 130.81, note: "C3", doremi: "ド" }, { frequency: 138.59, note: "C♯3 / D♭3", doremi: "レ♭" }, { frequency: 146.83, note: "D3", doremi: "レ" }, { frequency: 155.56, note: "D♯3 / E♭3", doremi: "ミ♭" }, { frequency: 164.81, note: "E3", doremi: "ミ" }, { frequency: 174.61, note: "F3", doremi: "ファ" }, { frequency: 185.00, note: "F♯3 / G♭3", doremi: "ソ♭" }, { frequency: 196.00, note: "G3", doremi: "ソ" }, { frequency: 207.65, note: "G♯3 / A♭3", doremi: "ラ♭" }, { frequency: 220.00, note: "A3", doremi: "ラ" }, { frequency: 233.08, note: "A♯3 / B♭3", doremi: "シ♭" }, { frequency: 246.94, note: "B3", doremi: "シ" }, { frequency: 261.63, note: "C4", doremi: "ド" }, { frequency: 277.18, note: "C♯4 / D♭4", doremi: "レ♭" }, { frequency: 293.66, note: "D4", doremi: "レ" }, { frequency: 311.13, note: "D♯4 / E♭4", doremi: "ミ♭" }, { frequency: 329.63, note: "E4", doremi: "ミ" }, { frequency: 349.23, note: "F4", doremi: "ファ" }, { frequency: 369.99, note: "F♯4 / G♭4", doremi: "ソ♭" }, { frequency: 392.00, note: "G4", doremi: "ソ" }, { frequency: 415.30, note: "G♯4 / A♭4", doremi: "ラ♭" }, { frequency: 440.00, note: "A4", doremi: "ラ" }, { frequency: 466.16, note: "A♯4 / B♭4", doremi: "シ♭" }, { frequency: 493.88, note: "B4", doremi: "シ" }, { frequency: 523.25, note: "C5", doremi: "ド" }, { frequency: 554.37, note: "C♯5 / D♭5", doremi: "レ♭" }, { frequency: 587.33, note: "D5", doremi: "レ" }, { frequency: 622.25, note: "D♯5 / E♭5", doremi: "ミ♭" }, { frequency: 659.26, note: "E5", doremi: "ミ" }, { frequency: 698.46, note: "F5", doremi: "ファ" }, { frequency: 739.99, note: "F♯5 / G♭5", doremi: "ソ♭" }, { frequency: 783.99, note: "G5", doremi: "ソ" }, { frequency: 830.61, note: "G♯5 / A♭5", doremi: "ラ♭" }, { frequency: 880.00, note: "A5", doremi: "ラ" }, { frequency: 932.33, note: "A♯5 / B♭5", doremi: "シ♭" }, { frequency: 987.77, note: "B5", doremi: "シ" }, { frequency: 1046.50, note: "C6", doremi: "ド" }, { frequency: 1108.73, note: "C♯6 / D♭6", doremi: "レ♭" }, { frequency: 1174.66, note: "D6", doremi: "レ" }, { frequency: 1244.51, note: "D♯6 / E♭6", doremi: "ミ♭" }, { frequency: 1318.51, note: "E6", doremi: "ミ" }, { frequency: 1396.91, note: "F6", doremi: "ファ" }, { frequency: 1479.98, note: "F♯6 / G♭6", doremi: "ソ♭" }, { frequency: 1567.98, note: "G6", doremi: "ソ" }, { frequency: 1661.22, note: "G♯6 / A♭6", doremi: "ラ♭" }, { frequency: 1760.00, note: "A6", doremi: "ラ" }, { frequency: 1864.66, note: "A♯6 / B♭6", doremi: "シ♭" }, { frequency: 1975.53, note: "B6", doremi: "シ" }, { frequency: 2093.00, note: "C7", doremi: "ド" }, { frequency: 2217.46, note: "C♯7 / D♭7", doremi: "レ♭" }, { frequency: 2349.32, note: "D7", doremi: "レ" }, { frequency: 2489.02, note: "D♯7 / E♭7", doremi: "ミ♭" }, { frequency: 2637.02, note: "E7", doremi: "ミ" }, { frequency: 2793.83, note: "F7", doremi: "ファ" }, { frequency: 2959.96, note: "F♯7 / G♭7", doremi: "ソ♭" }, { frequency: 3135.96, note: "G7", doremi: "ソ" }, { frequency: 3322.44, note: "G♯7 / A♭7", doremi: "ラ♭" }, { frequency: 3520.00, note: "A7", doremi: "ラ" }, { frequency: 3729.31, note: "A♯7 / B♭7", doremi: "シ♭" }, { frequency: 3951.07, note: "B7", doremi: "シ" }, { frequency: 4100, note: "-", doremi: "-" }];
-        // 周波数差の最小値を計算して最も近い音階を見つける
-        let closestNote = notes.reduce((prev, curr) =>
-          Math.abs(curr.frequency - frequency) < Math.abs(prev.frequency - frequency) ? curr : prev
-        );
-
-        return `${closestNote.note} (${closestNote.doremi})`;
+      #bg-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0);
+          pointer-events: none;
+          z-index: 1;
+          transition: background 0.3s ease;
       }
 
-      // 音を再生
-      playSin(freq) {
-        if (this.snd) return;
-        this.snd = this.context.createOscillator();
-        this.snd.type = this.waveformType;
-        this.snd.frequency.value = freq;
-
-        this.gainNode = this.context.createGain();
-        this.gainNode.gain.setValueAtTime(1, this.context.currentTime);
-        this.gainNode.connect(this.context.destination);
-
-        this.snd.connect(this.gainNode);
-        this.snd.start();
+      #stage {
+          position: absolute;
+          width: 400px;
+          height: 800px;
+          transform-origin: center center;
+          z-index: 2;
       }
 
-      // 音を停止
-      stopSin() {
-        if (this.snd && this.context) {
-          this.gainNode.gain.setValueAtTime(1, this.context.currentTime);
-          this.gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.3);
-          const removedSnd = this.snd;
-          this.snd = null;
-          setTimeout(() => {
-            removedSnd.stop();
-            removedSnd.disconnect();
-          }, 300);
-        }
+      .soundSlider {
+          width: 56px;
+          height: 800px;
+          background: var(--body-color);
+          position: absolute;
+          top: 0;
+          left: 0;
+          touch-action: none;
       }
-
-
-      // オーバーレイを作成する関数
-      createOverlay() {
-        const overlay = document.createElement('div');
-        overlay.innerText = `
-          左側の黒いバーを
-          - タッチ、
-          - スライド
-          すると演奏できます。
-
-          𝑻𝒐𝒖𝒄𝒉 𝑻𝒐 𝑺𝒕𝒂𝒓𝒕`;
-
-        // オーバーレイのスタイルをJavaScriptで設定
-        overlay.style.position = 'fixed';
-        overlay.style.boxSizing = 'border-box';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.padding = '2em';
-        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.color = 'white';
-        overlay.style.fontSize = '24px';
-        overlay.style.transition = 'opacity 1s ease-out'; // フェードアウトのためのトランジション
-        overlay.style.opacity = '1'; // 初期状態では表示
-        overlay.style.zIndex = '1000';
-
-        // タップイベントでフェードアウト
-        overlay.addEventListener('click', () => {
-          overlay.style.opacity = '0'; // フェードアウト
-          setTimeout(() => {
-            overlay.remove(); // 1秒後に要素を削除
-          }, 1000); // 1秒=1000ミリ秒
-        });
-
-        document.body.appendChild(overlay); // bodyに追加
+      .soundSlider::before, .soundSlider::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: var(--detail-color);
       }
-      // 周波数表示のためのUI作成
-      createFrequencyDisplay() {
-        this.freqDisplay = document.createElement('div');
-        this.freqDisplay.style.position = "absolute";
-        this.freqDisplay.style.color = "#FFF";
-        this.freqDisplay.style.fontSize = "1.5em";
-        this.freqDisplay.style.lineHeight = "2em";
-        this.freqDisplay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-        this.freqDisplay.style.padding = "0.5em";
-        this.freqDisplay.style.borderRadius = "0.5em";
-        this.freqDisplay.style.transform = "translateY(-1.5em)"
-        this.freqDisplay.style.visibility = "hidden";  // 最初は非表示
-        document.body.appendChild(this.freqDisplay);
+      .soundSlider::before {
+          top: 4%;
       }
-
-      // UIを作成
-      createUI() {
-        // スクロールを無効化
-        document.body.style.overflow = "hidden";
-
-        // 音のスライダー
-        const soundSlider = document.createElement('div');
-        soundSlider.style.width = "3.5em";
-        soundSlider.style.height = "100vh";
-        soundSlider.style.marginLeft = "2em";
-        soundSlider.style.background = "#333";
-
-        soundSlider.addEventListener("touchstart", (e) => {
-          if (this.context.state === "suspended") {
-            this.context.resume();
+      .soundSlider::after {
+          bottom: 15%;
+      }
+      .note-mark-line {
+          position: absolute;
+          left: 0;
+          width: 100%;
+          pointer-events: none;
+      }
+      .note-mark-label {
+          position: absolute;
+          left: 100%;
+          margin-left: 4px;
+          font-size: 11px;
+          font-family: sans-serif;
+          white-space: nowrap;
+          transform: translateY(-50%);
+          pointer-events: none;
+          background: rgba(255,255,255,0.75);
+          padding: 0 3px;
+          border-radius: 3px;
+      }
+      .practice-highlight {
+          position: absolute;
+          left: -6px;
+          width: calc(100% + 12px);
+          height: 14px;
+          margin-top: -7px;
+          background: #FF9900;
+          border-radius: 7px;
+          box-shadow: 0 0 12px 4px rgba(255, 153, 0, 0.9);
+          pointer-events: none;
+          display: none;
+          transition: top 0.12s ease-out;
+          z-index: 5;
+      }
+      .practice-note-display {
+          position: fixed;
+          top: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: sans-serif;
+          font-size: 2.2em;
+          font-weight: bold;
+          color: #333;
+          background: rgba(255, 255, 255, 0.85);
+          padding: 8px 24px;
+          border-radius: 10px;
+          display: none;
+          z-index: 20;
+          text-align: center;
+      }
+      .face {
+          width: 190px;
+          height: 190px;
+          background: var(--body-color);
+          border: 2px solid rgba(0,0,0,0.15);
+          box-sizing: border-box;
+          position: absolute;
+          bottom: 50px;
+          left: 34%;
+          transform: translateX(-50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+      }
+      .tail-container {
+          position: absolute;
+          top: 20px;
+          left: 10%;
+          transform-origin: left center;
+      }
+      .tail {
+          width: 200px;
+          height: 50px;
+          background: var(--body-color);
+          border: 2px solid rgba(0,0,0,0.15);
+          box-sizing: border-box;
+          border-radius: 30px;
+          transform-origin: left center;
+          animation: wag 1s infinite alternate ease-in-out;
+      }
+      .tail-end {
+          width: 80px;
+          height: 80px;
+          background: var(--body-color);
+          border: 2px solid rgba(0,0,0,0.15);
+          box-sizing: border-box;
+          position: absolute;
+          bottom: -40px;
+          right: 0px;
+          border-radius: 30px;
+      }
+      @keyframes wag {
+          0% {
+              transform: rotate(-10deg);
           }
-          const y = e.touches[0].pageY;
-          this.playSin(this.baseFrequency + y);
-          this.updateFrequencyDisplay(e.touches[0].pageX, e.touches[0].pageY, this.baseFrequency + y);
-        });
-        soundSlider.addEventListener("touchmove", (e) => {
-          const y = e.touches[0].pageY;
-          if (this.snd) {
-            this.snd.frequency.value = this.baseFrequency + y;
-            this.updateFrequencyDisplay(e.touches[0].pageX, e.touches[0].pageY, this.baseFrequency + y);
+          100% {
+              transform: rotate(10deg);
           }
-        });
+      }
+      .eyes {
+          display: flex;
+          justify-content: space-between;
+          width: 60%;
+          margin-bottom: 12px;
+      }
+      .eye {
+          width: 20px;
+          height: 20px;
+          background: var(--detail-color);
+          border-radius: 50%;
+      }
+      .mouth {
+          width: 100px;
+          height: 10px;
+          background: var(--detail-color);
+          margin-top: 10px;
+          transition: height 0.3s ease-in-out;
+      }
+      .mouth.open {
+          height: 30px;
+          border-radius: 10px;
+      }
+      .panel-title {
+          font-weight: bold;
+          margin-bottom: 4px;
+      }
+      .brand-badge {
+          position: fixed;
+          top: 6px;
+          left: 50%;
+          transform: translateX(-50%);
+          padding: 5px 16px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #6a11cb, #2575fc);
+          color: #FFFFFF;
+          font-family: sans-serif;
+          font-weight: bold;
+          font-size: 0.78em;
+          letter-spacing: 0.3px;
+          box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+          white-space: nowrap;
+          z-index: 30;
+          pointer-events: none;
+      }
+    </style>
+  </head>
 
-        soundSlider.addEventListener("touchend", () => {
-          this.stopSin();
-          this.freqDisplay.style.visibility = "hidden";  // タッチ終了時に非表示
-        });
+  <body>
+    <div id="bg-overlay"></div>
+    <div id="stage">
+      <div class="face" id="face">
+        <div class="eyes">
+          <div class="eye"></div>
+          <div class="eye"></div>
+        </div>
+        <div class="mouth" id="mouth"></div>
+      </div>
+      <div class="tail-container" id="tail-container">
+        <div class="tail" id="tail">
+          <div class="tail-end"></div>
+        </div>
+      </div>
+      <!-- soundSlider は JS が生成してここに追加します -->
+    </div>
 
-        document.body.append(soundSlider);
+    <script>
+      const T = {
+          ja: {
+              toggle: "反転",
+              rangeTitle: "音域",
+              low: "低い", mid: "中", high: "高い",
+              volumeTitle: "音量",
+              colorTitle: "色",
+              black: "黒", white: "白", pink: "ピンク", blue: "青",
+              bgTitle: "背景",
+              gray: "グレー", cream: "クリーム", mint: "ミント", lavender: "ラベンダー", peach: "ピーチ",
+              photo: "写真: ",
+              clearPhoto: "写真を消す",
+              practiceTitle: "🐸 かえるのうた",
+              verySlow: "とてもゆっくり", slow: "ゆっくり", normal: "ふつう",
+              start: "▶ スタート", stop: "■ ストップ",
+              langTitle: "言語",
+              brand: "非公式アプリ OTSim・気に入ったら本物を買おう!"
+          },
+          en: {
+              toggle: "Toggle",
+              rangeTitle: "Range",
+              low: "LOW", mid: "MID", high: "HIGH",
+              volumeTitle: "Volume",
+              colorTitle: "Color",
+              black: "Black", white: "White", pink: "Pink", blue: "Blue",
+              bgTitle: "Background",
+              gray: "Gray", cream: "Cream", mint: "Mint", lavender: "Lavender", peach: "Peach",
+              photo: "Photo: ",
+              clearPhoto: "Clear photo",
+              practiceTitle: "🐸 Frog Song",
+              verySlow: "Very Slow", slow: "Slow", normal: "Normal",
+              start: "▶ Start", stop: "■ Stop",
+              langTitle: "Language",
+              brand: "Unofficial App OTSim・Like it? Get the real one!"
+          }
+      };
 
-        // 最低周波数を調整するUIを画面右側に配置
-        const controlContainer = document.createElement('div');
-        controlContainer.style.position = "fixed";
-        controlContainer.style.top = "50%";
-        controlContainer.style.right = "1em";
-        controlContainer.style.transform = "translateY(-50%)";
-        controlContainer.style.display = "flex";
-        controlContainer.style.flexDirection = "column";
-        controlContainer.style.alignItems = "center";
-        controlContainer.style.backgroundColor = "#333";
-        controlContainer.style.color = "#FFF";
-        controlContainer.style.padding = "1em";
-        controlContainer.style.borderRadius = "1em";
+      class SoundController {
+          constructor() {
+              this.context = new AudioContext();
+              this.snds = [];
+              this.gainNode = null;
+              this.waveformType = "sine";
+              this.freqMidHigh = 1046.50; // C5
+              this.freqMidLow = 130.81; // C3
+              this.mirrored = false; // false = 通常, true = 反転
+              this.lang = "ja";
+              this.mouth = document.getElementById("mouth");
+              this.face = document.getElementById("face");
+              this.tailContainer = document.getElementById("tail-container");
+              this.stage = document.getElementById("stage");
+              this.designW = 400;
+              this.designH = 800;
+              this.i18nRefs = []; // { el, key } のリスト。言語切替時にまとめて更新する
 
-        // 最低周波数の表示と入力欄
-        const freqLabel = document.createElement('label');
-        freqLabel.innerText = "Base Freq ";
-        controlContainer.appendChild(freqLabel);
+              this.createUI();
+              this.createFrequencyDisplay();
+              this.resizeStage();
+              this.renderNoteMarks();
+              this.applyLanguage("ja");
 
-        const freqInput = document.createElement('input');
-        freqInput.type = "number";
-        freqInput.value = this.baseFrequency;
-        freqInput.style.width = "6em";
-        freqInput.style.padding = "0.5em";
-        freqInput.style.margin = "0.5em";
-        freqInput.style.fontSize = "1.2em";
-        freqInput.style.borderRadius = "0.5em";
-        freqInput.style.border = "none";
-        freqInput.style.textAlign = "center";
-        freqInput.addEventListener("input", (e) => {
-          this.baseFrequency = parseInt(e.target.value) || 200;
-        });
-        controlContainer.appendChild(freqInput);
+              window.addEventListener("resize", () => this.resizeStage());
+              window.addEventListener("orientationchange", () => setTimeout(() => this.resizeStage(), 100));
+          }
 
-        // 波形選択用のドロップダウンメニュー
-        const waveformLabel = document.createElement('label');
-        waveformLabel.innerText = "Waveform ";
-        controlContainer.appendChild(waveformLabel);
+          // key -> テキストを反映するelを登録しておく(言語切替時にまとめて更新)
+          registerText(el, key) {
+              this.i18nRefs.push({ el, key });
+          }
 
-        const waveformSelect = document.createElement('select');
-        this.selectableWaveformTypes.forEach(type => {
-          const option = document.createElement('option');
-          option.value = type;
-          option.text = type.charAt(0).toUpperCase() + type.slice(1);
-          waveformSelect.appendChild(option);
-        });
-        waveformSelect.style.width = "6em";
-        waveformSelect.style.padding = "0.5em";
-        waveformSelect.style.margin = "0.5em";
-        waveformSelect.style.fontSize = "1.2em";
-        waveformSelect.style.borderRadius = "0.5em";
-        waveformSelect.addEventListener("change", (e) => {
-          this.waveformType = e.target.value;  // 選択した波形を適用
-        });
-        controlContainer.appendChild(waveformSelect);
+          applyLanguage(lang) {
+              this.lang = lang;
+              const dict = T[lang];
+              this.i18nRefs.forEach(({ el, key }) => {
+                  el.textContent = dict[key];
+              });
+              this.updatePracticeButtonText();
+          }
 
-        // 増減ボタンWrapper
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.display = "flex";
-        buttonContainer.style.flexDirection = "column";
-        buttonContainer.style.gap = "1em";
-        buttonContainer.style.marginTop = "1em";
+          updatePracticeButtonText() {
+              this.practiceButton.textContent = this.practicePlaying ? T[this.lang].stop : T[this.lang].start;
+          }
 
-        // マイナスボタン
-        const decreaseButton = document.createElement('button');
-        decreaseButton.innerText = "−";
-        decreaseButton.style.padding = ".2em 1em";
-        decreaseButton.style.fontSize = "3em";
-        decreaseButton.style.backgroundColor = "#FF6347";
-        decreaseButton.style.color = "#FFF";
-        decreaseButton.style.border = "none";
-        decreaseButton.style.borderRadius = "0.5em";
-        decreaseButton.style.cursor = "pointer";
-        decreaseButton.style.transition = "all 0.3s ease";
-        decreaseButton.addEventListener("click", () => {
-          this.baseFrequency = Math.max(100, this.baseFrequency - this.frequencyStep);
-          freqInput.value = this.baseFrequency;
-        });
-        decreaseButton.addEventListener("mouseenter", () => {
-          decreaseButton.style.backgroundColor = "#e55347"; // ホバー時の色変更
-        });
-        decreaseButton.addEventListener("mouseleave", () => {
-          decreaseButton.style.backgroundColor = "#FF6347"; // 通常時に戻す
-        });
-        buttonContainer.appendChild(decreaseButton);
+          resizeStage() {
+              const scale = Math.min(window.innerWidth / this.designW, window.innerHeight / this.designH);
+              this.stage.style.left = ((window.innerWidth - this.designW) / 2) + "px";
+              this.stage.style.top = ((window.innerHeight - this.designH) / 2) + "px";
+              this.stage.style.transform = `scale(${this.mirrored ? -scale : scale}, ${scale})`;
+          }
 
-        // プラスボタン
-        const increaseButton = document.createElement('button');
-        increaseButton.innerText = "+";
-        increaseButton.style.padding = ".2em 1em";
-        increaseButton.style.fontSize = "3em";
-        increaseButton.style.backgroundColor = "#4CAF50";
-        increaseButton.style.color = "#FFF";
-        increaseButton.style.bolsrder = "none";
-        increaseButton.style.borderRadius = "0.5em";
-        increaseButton.style.cursor = "pointer";
-        increaseButton.style.transition = "all 0.3s ease";
-        increaseButton.addEventListener("click", () => {
-          this.baseFrequency += this.frequencyStep;
-          freqInput.value = this.baseFrequency;
-        });
-        increaseButton.addEventListener("mouseenter", () => {
-          increaseButton.style.backgroundColor = "#45a049"; // ホバー時の色変更
-        });
-        increaseButton.addEventListener("mouseleave", () => {
-          increaseButton.style.backgroundColor = "#4CAF50"; // 通常時に戻す
-        });
-        buttonContainer.appendChild(increaseButton);
+          // ラジオボタン付きラベルを作る共通ヘルパー。表示テキストは<span>にして言語切替に対応
+          makeRadioLabel(container, groupName, key, checked, onChange) {
+              const label = document.createElement('label');
+              const radio = document.createElement('input');
+              radio.type = "radio";
+              radio.name = groupName;
+              radio.checked = checked;
+              radio.addEventListener("change", onChange);
+              const span = document.createElement('span');
+              this.registerText(span, key);
+              label.appendChild(radio);
+              label.appendChild(span);
+              container.appendChild(label);
+              container.appendChild(document.createElement('br'));
+              return radio;
+          }
 
-        controlContainer.appendChild(buttonContainer);
-        document.body.append(controlContainer);
+          createUI() {
+              this.soundSlider = document.createElement('div');
+              this.soundSlider.classList.add('soundSlider');
+              this.stage.append(this.soundSlider);
 
-        // ページ読み込み時にオーバーレイ表示
-        document.addEventListener('DOMContentLoaded', this.createOverlay);
+              // ---- ブランドバッジ ----
+              this.brandBadge = document.createElement('div');
+              this.brandBadge.classList.add('brand-badge');
+              this.registerText(this.brandBadge, "brand");
+              document.body.append(this.brandBadge);
+
+              // ---- Toggle ----
+              this.positionButton = document.createElement('button');
+              this.positionButton.style.position = "fixed";
+              this.positionButton.style.bottom = "10px";
+              this.positionButton.style.right = "2em";
+              this.positionButton.style.left = "";
+              this.positionButton.style.padding = "10px 20px";
+              this.positionButton.style.fontSize = "1.2em";
+              this.positionButton.style.backgroundColor = "#007BFF";
+              this.positionButton.style.color = "#FFF";
+              this.positionButton.style.border = "none";
+              this.positionButton.style.borderRadius = "5px";
+              this.positionButton.style.cursor = "pointer";
+              this.positionButton.style.zIndex = "10";
+              this.registerText(this.positionButton, "toggle");
+              this.positionButton.addEventListener("click", () => {
+                  this.mirrored = !this.mirrored;
+                  this.updateMirror();
+              });
+              document.body.append(this.positionButton);
+
+              // ---- 音域(LOW/MID/HIGH) ----
+              this.frequencySelector = document.createElement('div');
+              this.frequencySelector.style.position = "fixed";
+              this.frequencySelector.style.bottom = "60px";
+              this.frequencySelector.style.right = "2em";
+              this.frequencySelector.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+              this.frequencySelector.style.padding = "10px";
+              this.frequencySelector.style.borderRadius = "5px";
+              this.frequencySelector.style.zIndex = "10";
+
+              const rangeTitle = document.createElement('div');
+              rangeTitle.classList.add('panel-title');
+              this.registerText(rangeTitle, "rangeTitle");
+              this.frequencySelector.appendChild(rangeTitle);
+
+              [["LOW", "low"], ["MID", "mid"], ["HIGH", "high"]].forEach(([level, key]) => {
+                  this.makeRadioLabel(this.frequencySelector, "frequency", key, level === "MID", () => {
+                      switch (level) {
+                          case "LOW":
+                              this.freqMidHigh = 261.63; // C4
+                              this.freqMidLow = 32.70; // C1
+                              break;
+                          case "HIGH":
+                              this.freqMidHigh = 4186.01; // C8
+                              this.freqMidLow = 523.25; // C5
+                              break;
+                          default:
+                              this.freqMidHigh = 1046.50; // C6
+                              this.freqMidLow = 130.81; // C3
+                              break;
+                      }
+                      this.renderNoteMarks();
+                  });
+              });
+              document.body.append(this.frequencySelector);
+
+              // ---- 音量 ----
+              this.volume = 0.8;
+              this.volumeSelector = document.createElement('div');
+              this.volumeSelector.style.position = "fixed";
+              this.volumeSelector.style.bottom = "185px";
+              this.volumeSelector.style.right = "2em";
+              this.volumeSelector.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+              this.volumeSelector.style.padding = "10px";
+              this.volumeSelector.style.borderRadius = "5px";
+              this.volumeSelector.style.zIndex = "10";
+              this.volumeSelector.style.textAlign = "center";
+
+              const volumeLabel = document.createElement('div');
+              volumeLabel.style.fontSize = "0.8em";
+              volumeLabel.style.marginBottom = "4px";
+              this.registerText(volumeLabel, "volumeTitle");
+              this.volumeSelector.appendChild(volumeLabel);
+
+              const volumeSlider = document.createElement('input');
+              volumeSlider.type = "range";
+              volumeSlider.min = "0";
+              volumeSlider.max = "100";
+              volumeSlider.value = String(this.volume * 100);
+              volumeSlider.style.width = "6em";
+              volumeSlider.addEventListener("input", (e) => {
+                  this.volume = e.target.value / 100;
+                  if (this.gainNode && this.snd) {
+                      this.gainNode.gain.setValueAtTime(this.volume, this.context.currentTime);
+                  }
+              });
+              this.volumeSelector.appendChild(volumeSlider);
+              document.body.append(this.volumeSelector);
+
+              // ---- 色 ----
+              this.colorSelector = document.createElement('div');
+              this.colorSelector.style.position = "fixed";
+              this.colorSelector.style.bottom = "290px";
+              this.colorSelector.style.right = "2em";
+              this.colorSelector.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+              this.colorSelector.style.padding = "10px";
+              this.colorSelector.style.borderRadius = "5px";
+              this.colorSelector.style.zIndex = "10";
+
+              const colorTitle = document.createElement('div');
+              colorTitle.classList.add('panel-title');
+              this.registerText(colorTitle, "colorTitle");
+              this.colorSelector.appendChild(colorTitle);
+
+              const colorOptions = [
+                  { key: "black", body: "#000000", detail: "#FFFFFF" },
+                  { key: "white", body: "#FFFFFF", detail: "#333333" },
+                  { key: "pink", body: "#FFD1DC", detail: "#333333" },
+                  { key: "blue", body: "#BEE3F8", detail: "#333333" }
+              ];
+              colorOptions.forEach(opt => {
+                  this.makeRadioLabel(this.colorSelector, "bodyColor", opt.key, opt.key === "black", () => {
+                      document.body.style.setProperty("--body-color", opt.body);
+                      document.body.style.setProperty("--detail-color", opt.detail);
+                  });
+              });
+              document.body.append(this.colorSelector);
+
+              // ---- 背景 ----
+              this.bgSelector = document.createElement('div');
+              this.bgSelector.style.position = "fixed";
+              this.bgSelector.style.top = "42px";
+              this.bgSelector.style.right = "1em";
+              this.bgSelector.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+              this.bgSelector.style.padding = "10px";
+              this.bgSelector.style.borderRadius = "5px";
+              this.bgSelector.style.zIndex = "10";
+              this.bgSelector.style.maxWidth = "9em";
+
+              const bgTitle = document.createElement('div');
+              bgTitle.classList.add('panel-title');
+              this.registerText(bgTitle, "bgTitle");
+              this.bgSelector.appendChild(bgTitle);
+
+              const bgColorOptions = [
+                  { key: "gray", color: "#CCCCCC" },
+                  { key: "cream", color: "#FDF6E3" },
+                  { key: "mint", color: "#E0F5E9" },
+                  { key: "lavender", color: "#EDE7F6" },
+                  { key: "peach", color: "#FFE8DC" }
+              ];
+              bgColorOptions.forEach(opt => {
+                  this.makeRadioLabel(this.bgSelector, "bgColor", opt.key, opt.key === "gray", () => {
+                      document.body.style.backgroundImage = "";
+                      document.body.style.backgroundColor = opt.color;
+                      document.getElementById('bg-overlay').style.background = "rgba(0, 0, 0, 0)";
+                  });
+              });
+
+              const bgImageLabel = document.createElement('label');
+              bgImageLabel.style.display = "block";
+              bgImageLabel.style.marginTop = "6px";
+              const photoSpan = document.createElement('span');
+              this.registerText(photoSpan, "photo");
+              bgImageLabel.appendChild(photoSpan);
+              const bgImageInput = document.createElement('input');
+              bgImageInput.type = "file";
+              bgImageInput.accept = "image/*";
+              bgImageInput.style.width = "8em";
+              bgImageInput.style.fontSize = "0.7em";
+              bgImageInput.addEventListener("change", (e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                      const url = URL.createObjectURL(file);
+                      document.body.style.backgroundImage = `url("${url}")`;
+                      document.getElementById('bg-overlay').style.background = "rgba(255, 255, 255, 0.6)";
+                  }
+              });
+              bgImageLabel.appendChild(bgImageInput);
+              this.bgSelector.appendChild(bgImageLabel);
+
+              const bgClearButton = document.createElement('button');
+              bgClearButton.style.marginTop = "6px";
+              bgClearButton.style.fontSize = "0.7em";
+              bgClearButton.style.width = "100%";
+              this.registerText(bgClearButton, "clearPhoto");
+              bgClearButton.addEventListener("click", () => {
+                  document.body.style.backgroundImage = "";
+                  bgImageInput.value = "";
+                  document.getElementById('bg-overlay').style.background = "rgba(0, 0, 0, 0)";
+              });
+              this.bgSelector.appendChild(bgClearButton);
+              document.body.append(this.bgSelector);
+
+              // ---- 言語切替 ----
+              this.langSelector = document.createElement('div');
+              this.langSelector.style.position = "fixed";
+              this.langSelector.style.bottom = "10px";
+              this.langSelector.style.left = "1em";
+              this.langSelector.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+              this.langSelector.style.padding = "8px 10px";
+              this.langSelector.style.borderRadius = "5px";
+              this.langSelector.style.zIndex = "20";
+              this.langSelector.style.textAlign = "center";
+
+              const langTitle = document.createElement('div');
+              langTitle.classList.add('panel-title');
+              langTitle.style.fontSize = "0.75em";
+              this.registerText(langTitle, "langTitle");
+              this.langSelector.appendChild(langTitle);
+
+              [["ja", "日本語"], ["en", "English"]].forEach(([code, display]) => {
+                  const label = document.createElement('label');
+                  label.style.marginRight = "8px";
+                  const radio = document.createElement('input');
+                  radio.type = "radio";
+                  radio.name = "lang";
+                  radio.checked = code === "ja";
+                  radio.addEventListener("change", () => this.applyLanguage(code));
+                  label.appendChild(radio);
+                  label.appendChild(document.createTextNode(display));
+                  this.langSelector.appendChild(label);
+              });
+              document.body.append(this.langSelector);
+
+              // ---- かえるのうた練習モード ----
+              this.practicePanel = document.createElement('div');
+              this.practicePanel.style.position = "fixed";
+              this.practicePanel.style.top = "70px";
+              this.practicePanel.style.left = "1em";
+              this.practicePanel.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+              this.practicePanel.style.padding = "10px";
+              this.practicePanel.style.borderRadius = "5px";
+              this.practicePanel.style.zIndex = "10";
+              this.practicePanel.style.maxWidth = "10em";
+
+              const practiceTitle = document.createElement('div');
+              practiceTitle.classList.add('panel-title');
+              this.registerText(practiceTitle, "practiceTitle");
+              this.practicePanel.appendChild(practiceTitle);
+
+              this.practiceSpeed = 2000; // ms/音符(とてもゆっくり=初期値、シニア向け)
+              [["verySlow", 2000], ["slow", 900], ["normal", 550]].forEach(([key, ms], i) => {
+                  this.makeRadioLabel(this.practicePanel, "practiceSpeed", key, i === 0, () => {
+                      this.practiceSpeed = ms;
+                  });
+              });
+
+              this.practiceButton = document.createElement('button');
+              this.practiceButton.style.marginTop = "6px";
+              this.practiceButton.style.width = "100%";
+              this.practiceButton.style.padding = "6px";
+              this.practiceButton.style.fontSize = "0.9em";
+              this.practiceButton.style.backgroundColor = "#4CAF50";
+              this.practiceButton.style.color = "#FFF";
+              this.practiceButton.style.border = "none";
+              this.practiceButton.style.borderRadius = "5px";
+              this.practiceButton.style.cursor = "pointer";
+              this.practiceButton.addEventListener("click", () => {
+                  if (this.practicePlaying) {
+                      this.stopKaeruSong();
+                  } else {
+                      this.startKaeruSong();
+                  }
+              });
+              this.practicePanel.appendChild(this.practiceButton);
+              document.body.append(this.practicePanel);
+
+              this.practiceHighlight = document.createElement('div');
+              this.practiceHighlight.classList.add('practice-highlight');
+              this.soundSlider.appendChild(this.practiceHighlight);
+
+              this.practiceNoteDisplay = document.createElement('div');
+              this.practiceNoteDisplay.classList.add('practice-note-display');
+              document.body.appendChild(this.practiceNoteDisplay);
+
+              this.updateMirror();
+
+              // iOSでは pointerdown が「音声再生を許可するユーザー操作」として
+              // 認識されない場合があるため、touchstart でも確実に resume() する
+              this.soundSlider.addEventListener("touchstart", () => {
+                  if (this.context.state === "suspended") {
+                      this.context.resume();
+                  }
+              }, { passive: true });
+
+              this.soundSlider.addEventListener("pointerdown", (e) => {
+                  if (this.context.state === "suspended") {
+                      this.context.resume();
+                  }
+                  try {
+                      this.soundSlider.setPointerCapture(e.pointerId);
+                  } catch (err) {
+                      // 一部のiOSバージョンでエラーになることがあるが、
+                      // 無視しても演奏機能自体には影響しない
+                  }
+                  const freq = this.calcFrequency(e.clientY);
+                  this.playSin(freq);
+                  this.updateFrequencyDisplay(freq);
+              });
+              this.soundSlider.addEventListener("pointermove", (e) => {
+                  if (this.snd) {
+                      const freq = this.calcFrequency(e.clientY);
+                      this.snd.frequency.value = freq;
+                      this.updateFrequencyDisplay(freq);
+                  }
+              });
+              this.soundSlider.addEventListener("pointerup", () => {
+                  this.stopSin();
+                  this.freqDisplay.style.visibility = "hidden";
+              });
+              this.soundSlider.addEventListener("pointercancel", () => {
+                  this.stopSin();
+                  this.freqDisplay.style.visibility = "hidden";
+              });
+          }
+
+          // 音名+オクターブ から周波数を計算(C4=261.63Hzが基準)
+          noteFreq(letter, octave) {
+              const semitone = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[letter];
+              const midi = 12 * (octave + 1) + semitone;
+              return 440 * Math.pow(2, (midi - 69) / 12);
+          }
+
+          // 「かえるの合唱」(ドイツ民謡)の正しい音階。全てオクターブ4の範囲に収まります
+          getKaeruSequence() {
+              const soundJP = { C: "ド", D: "レ", E: "ミ", F: "ファ", G: "ソ", A: "ラ", B: "シ" };
+              const seq = [
+                  ['C', 4], ['D', 4], ['E', 4], ['F', 4], ['E', 4], ['D', 4], ['C', 4],
+                  ['E', 4], ['F', 4], ['G', 4], ['A', 4], ['G', 4], ['F', 4], ['E', 4],
+                  ['C', 4], ['C', 4], ['C', 4], ['C', 4],
+                  ['C', 4], ['C', 4], ['D', 4], ['D', 4], ['E', 4], ['E', 4], ['F', 4], ['F', 4],
+                  ['E', 4], ['D', 4], ['C', 4]
+              ];
+              return seq.map(([letter, octave]) => ({
+                  freq: this.noteFreq(letter, octave),
+                  label: `${soundJP[letter]} (${letter}${octave})`
+              }));
+          }
+
+          startKaeruSong() {
+              this.freqMidHigh = 1046.50;
+              this.freqMidLow = 130.81;
+              document.querySelectorAll('input[name="frequency"]').forEach((r, i) => {
+                  r.checked = (i === 1); // MID
+              });
+              this.renderNoteMarks();
+
+              this.kaeruSequence = this.getKaeruSequence();
+              this.kaeruIndex = 0;
+              this.practicePlaying = true;
+              this.updatePracticeButtonText();
+              this.practiceButton.style.backgroundColor = "#FF6347";
+              this.practiceHighlight.style.display = "block";
+              this.practiceNoteDisplay.style.display = "block";
+              this.stepKaeruSong();
+          }
+
+          stepKaeruSong() {
+              if (!this.practicePlaying) return;
+              if (this.kaeruIndex >= this.kaeruSequence.length) {
+                  this.stopKaeruSong();
+                  return;
+              }
+              const note = this.kaeruSequence[this.kaeruIndex];
+              const normP = Math.sqrt(Math.max(0, (note.freq - this.freqMidLow) / (this.freqMidHigh - this.freqMidLow)));
+              const rel = 0.06 + normP * 0.80;
+              this.practiceHighlight.style.top = (rel * 100) + "%";
+              this.practiceNoteDisplay.innerText = note.label;
+
+              this.kaeruIndex++;
+              this.practiceTimer = setTimeout(() => this.stepKaeruSong(), this.practiceSpeed);
+          }
+
+          stopKaeruSong() {
+              this.practicePlaying = false;
+              if (this.practiceTimer) clearTimeout(this.practiceTimer);
+              this.updatePracticeButtonText();
+              this.practiceButton.style.backgroundColor = "#4CAF50";
+              this.practiceHighlight.style.display = "none";
+              this.practiceNoteDisplay.style.display = "none";
+          }
+
+          calcFrequency(clientY) {
+              const rect = this.soundSlider.getBoundingClientRect();
+              const rel = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+              // 0(上)〜1(下) に正規化してから、二乗のカーブをかける。
+              // これにより上(低音側)は大まか、下(高音側)は細かい配分になる
+              const normP = Math.min(1, Math.max(0, (rel - 0.06) / 0.80));
+              const curved = normP * normP;
+              return this.freqMidLow + curved * (this.freqMidHigh - this.freqMidLow);
+          }
+
+          // ド・レ・ミ・ファ・ソ・ラ・シ・ド の位置に目印を描く
+          renderNoteMarks() {
+              this.soundSlider.querySelectorAll('.note-mark-line, .note-mark-label').forEach(el => el.remove());
+
+              const diatonic = [
+                  { label: "ド", semitone: 0 },
+                  { label: "レ", semitone: 2 },
+                  { label: "ミ", semitone: 4 },
+                  { label: "ファ", semitone: 5 },
+                  { label: "ソ", semitone: 7 },
+                  { label: "ラ", semitone: 9 },
+                  { label: "シ", semitone: 11 }
+              ];
+
+              for (let octave = 0; octave <= 8; octave++) {
+                  diatonic.forEach(note => {
+                      const midi = 12 * (octave + 1) + note.semitone;
+                      const freq = 440 * Math.pow(2, (midi - 69) / 12);
+                      if (freq < this.freqMidLow || freq > this.freqMidHigh) return;
+
+                      // calcFrequency の逆算(二乗カーブの逆=平方根)
+                      const normP = Math.sqrt(Math.max(0, (freq - this.freqMidLow) / (this.freqMidHigh - this.freqMidLow)));
+                      const rel = 0.06 + normP * 0.80;
+                      const topPercent = rel * 100;
+                      const isDo = note.label === "ド";
+
+                      const line = document.createElement('div');
+                      line.classList.add('note-mark-line');
+                      line.style.top = topPercent + "%";
+                      line.style.height = isDo ? "3px" : "1px";
+                      line.style.background = isDo ? "#FFD700" : "rgba(255,255,255,0.55)";
+                      this.soundSlider.appendChild(line);
+
+                      if (isDo) {
+                          const label = document.createElement('div');
+                          label.classList.add('note-mark-label');
+                          label.innerText = `C${octave}`;
+                          label.style.top = topPercent + "%";
+                          label.style.transform = this.mirrored
+                              ? "translateY(-50%) scaleX(-1)"
+                              : "translateY(-50%)";
+                          this.soundSlider.appendChild(label);
+                      }
+                  });
+              }
+          }
+
+          updateMirror() {
+              this.resizeStage();
+              if (this.soundSlider) {
+                  this.renderNoteMarks();
+              }
+              if (!this.mirrored) {
+                  this.positionButton.style.right = "2em";
+                  this.positionButton.style.left = "";
+                  this.frequencySelector.style.right = "2em";
+                  this.frequencySelector.style.left = "";
+                  this.volumeSelector.style.right = "2em";
+                  this.volumeSelector.style.left = "";
+                  this.colorSelector.style.right = "2em";
+                  this.colorSelector.style.left = "";
+                  this.bgSelector.style.right = "1em";
+                  this.bgSelector.style.left = "";
+              } else {
+                  this.positionButton.style.left = "2em";
+                  this.positionButton.style.right = "";
+                  this.frequencySelector.style.left = "2em";
+                  this.frequencySelector.style.right = "";
+                  this.volumeSelector.style.left = "2em";
+                  this.volumeSelector.style.right = "";
+                  this.colorSelector.style.left = "2em";
+                  this.colorSelector.style.right = "";
+                  this.bgSelector.style.left = "1em";
+                  this.bgSelector.style.right = "";
+              }
+              if (this.practicePanel) {
+                  if (!this.mirrored) {
+                      this.practicePanel.style.left = "1em";
+                      this.practicePanel.style.right = "";
+                  } else {
+                      this.practicePanel.style.right = "1em";
+                      this.practicePanel.style.left = "";
+                  }
+              }
+              if (this.langSelector) {
+                  if (!this.mirrored) {
+                      this.langSelector.style.left = "1em";
+                      this.langSelector.style.right = "";
+                  } else {
+                      this.langSelector.style.right = "1em";
+                      this.langSelector.style.left = "";
+                  }
+              }
+          }
+
+          createFrequencyDisplay() {
+              this.freqDisplay = document.createElement('div');
+              this.freqDisplay.style.position = "fixed";
+              this.freqDisplay.style.left = "6rem";
+              this.freqDisplay.style.top = "0px";
+              this.freqDisplay.style.color = "#FFF";
+              this.freqDisplay.style.fontSize = "1.5em";
+              this.freqDisplay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+              this.freqDisplay.style.padding = "0.5em";
+              this.freqDisplay.style.borderRadius = "0.5em";
+              this.freqDisplay.style.visibility = "hidden";
+              this.freqDisplay.style.zIndex = "10";
+              document.body.appendChild(this.freqDisplay);
+          }
+
+          playSin(freq) {
+              if (this.snd) return;
+              if (this.context.state === "suspended") {
+                  this.context.resume();
+              }
+              this.snd = this.context.createOscillator();
+              this.snd.type = this.waveformType;
+              this.snd.frequency.value = freq;
+
+              this.gainNode = this.context.createGain();
+              this.gainNode.gain.setValueAtTime(this.volume, this.context.currentTime);
+              this.gainNode.connect(this.context.destination);
+
+              this.snd.connect(this.gainNode);
+              this.snd.start();
+              if (this.mouth) this.mouth.classList.add("open");
+          }
+
+          stopSin() {
+              if (this.snd && this.context) {
+                  this.gainNode.gain.setValueAtTime(this.volume, this.context.currentTime);
+                  this.gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.3);
+                  const removedSnd = this.snd;
+                  this.snd = null;
+                  setTimeout(() => {
+                      removedSnd.stop();
+                      removedSnd.disconnect();
+                      if (this.mouth) this.mouth.classList.remove("open");
+                  }, 300);
+              }
+          }
+
+          updateFrequencyDisplay(freq) {
+              this.freqDisplay.innerText = `Freq: ${freq.toFixed(0)} Hz`;
+              this.freqDisplay.style.visibility = "visible";
+          }
       }
 
-      // 周波数表示を更新
-      updateFrequencyDisplay(x, y, freq) {
-        this.freqDisplay.style.left = `6rem`;  // x位置はSoundBarの右側
-        this.freqDisplay.style.top = `${y}px`;        // y位置は指の位置
-        this.freqDisplay.innerText = `Freq: ${freq.toFixed(0)} Hz ${this.getNoteAndDremi(freq)}`;
-        this.freqDisplay.style.visibility = "visible"; // 表示
-      }
-    }
-
-    // body 初期化
-    document.body.style.background = "#CCC";
-    document.body.style.touchAction = "pan-x pan-y";
-    document.body.style.width = "100vw";
-    document.body.style.height = "100vh";
-    document.body.style.transition = "font-size 0.3s ease-out";
-    const adjustFontSize = () => {
-      const isBodyPortrait = document.body.clientHeight > document.body.clientWidth;
-      document.body.style.fontSize = isBodyPortrait ? "4vw" : "3vh";
-      document.body.style.margin = document.body.style.padding = "0";
-    }
-    adjustFontSize();
-    window.addEventListener("orientationchange", () => { setTimeout(adjustFontSize, 100) });
-
-    // インスタンスを作成して実行
-    const soundController = new SoundController();
-  </script>
-</body>
+      const soundController = new SoundController();
+    </script>
+  </body>
 
 </html>
